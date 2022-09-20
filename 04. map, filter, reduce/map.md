@@ -41,3 +41,15 @@ function *gen() {
 
 console.log(map(a => a * a, gen())) // [4, 9, 16]
 ```
+
+- 자료 유형인 Map 도 Iterable
+```typescript
+let m = new Map();
+
+m.set('a', 10)
+m.set('b', 20)
+m.set('c', 30)
+
+console.log(new Map(map(([key, value]) => [key, value * 2], m)));
+
+```

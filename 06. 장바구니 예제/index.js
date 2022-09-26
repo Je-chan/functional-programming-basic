@@ -1,9 +1,9 @@
 const products = [
-  {name: 'Keychron', price: 120000, quantity: 12,},
-  {name: 'KN01C', price: 130000, quantity: 10,},
-  {name: '660C', price: 230000, quantity: 3,},
-  {name: 'R2', price: 270000, quantity: 0,},
-  {name: 'R3 Silent', price: 390000, quantity: 0,},
+  {name: 'Keychron', price: 120000, quantity: 12, is_selected: true},
+  {name: 'KN01C', price: 130000, quantity: 10, is_selected: false},
+  {name: '660C', price: 230000, quantity: 3, is_selected: true},
+  {name: 'R2', price: 270000, quantity: 0, is_selected: false},
+  {name: 'R3 Silent', price: 390000, quantity: 0, is_selected: false},
 ]
 
 const go = (...args) => reduce((initValue, f) => f(initValue), args);
@@ -99,3 +99,43 @@ console.log(sum(user => user.age, [
   {age: 20},
   {age: 10}
 ]))
+
+document.querySelector('#cart').innerHTML = `
+  <table>
+    <tr>
+      <th></th>
+      <th>상품 이름</th>
+      <th>가격</th>
+      <th>수량</th>
+      <th>총 가격</th>
+    </tr>
+    ${go(products,
+    //   map(p => `
+    //     <tr>
+    //       <td>${p.name}</td>
+    //       <td>${p.price}</td>
+    //       <td><input type="number" value="${p.quantity}"/></td>
+    //       <td>${p.price * p.quantity}</td>
+    //     </tr>
+    //   `),
+    //   reduce(add)
+    // )}
+  
+    // sum 을 활용한 추상화 (map 부터 reduce 까지)
+    sum(p => `
+      <tr>
+        <th><input type="checkbox" ${p.is_selected ? 'checked' : ''}/></th>
+        <td>${p.name}</td>
+        <td>${p.price}</td>
+        <td><input type="number" value="${p.quantity}"/></td>
+        <td>${p.price * p.quantity}</td>
+      </tr>
+    `))}
+  
+    <tr>
+      <td colspan="2">합계</td>
+      <td>${total_quantity(filter(p => p.is_selected, products))}</td>
+      <td>${total_price(filter(p => p.is_selected, products))}</td>
+    </tr>
+  </table>
+`

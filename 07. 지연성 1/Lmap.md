@@ -1,0 +1,14 @@
+# 1. L.map
+- map 을 지연성을 가진 map 으로 만들되, 제너레이터, 이터레이터 프로토콜을 기반으로 만들 것
+- 평가를 미루는 성질을 가지고 성질을 달리 조작할 수 있는 준비가 된 이터레이터를 반환하는 제너레이터 함수
+
+```typescript
+L.map = function *(f, iter) {
+  for (const a of iter) yield f(a);
+}
+
+const it = L.map(a => a + 10, [1, 2, 3]) 
+
+console.log(it.next()) // { value: 11, done: false }
+console.log([...it]) // [ 12, 13 ]
+```

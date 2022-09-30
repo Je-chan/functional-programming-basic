@@ -51,3 +51,15 @@ console.log(list.next()) // {value : 3, done: false}
 - range 는 실행했을 때 이미 모든 부분이 평가가 되어 값이 매겨지는 것
 - L.range 는 어떠한 코드도 평가가 되지 않고 실제로 내부에 있는 값이 필요할 때 비로소 평가가 되는 것
   - 이거는 array 를 만들지 않고 하나씩 값만 꺼내는 것
+
+# 3. range 와 L.range 성능 테스트
+```typescript
+function test(name, time, f) {
+  console.time(name)
+  while(time--) f();
+  console.timeEnd(name);
+}
+
+test('range', 10, () => reduce(add, range(1000000)))  // 492.~~~ ms
+test('L.range', 10, () => reduce(add, range(1000000))) // 256.~~~ ms
+```

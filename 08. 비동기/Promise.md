@@ -72,3 +72,107 @@ console.log('out_console', goP(goP(n1, add5), console.log)) // 15 \n out_console
 console.log('out_console', goP(goP(n2, add5), console.log)) // out_console Promise { <pending> } \n 15
 ```
 - 어떤 일을 한 결과의 상황을 일급 값으로 만들어서 지속적으로 이어나갈 수 있게 하는 것이 Promise 의 중요한 특징
+
+## 1-3) 합성 관점에서의 Promise
+- Promise 는 비동기 상황에서 함수 합성을 안전하게 하기 위한 도구
+- 연속적인 함수 실행을 안전하게 하는 Monad 로 설명할 수 있음
+- 함수 합성 표현
+  - f(g(x))
+
+### Monad
+- 상황에 따라 안전하게 합성할 수 있도록 Monad 라는 개념이 존재
+  - 그 구현체 중에 비동기 상황을 안전하게 합성할 수 있게 하는 것이 Promise
+- 자바스크립트는 동적 타입 언어고 타입을 중심적으로 사고하면서 프로그래밍하는 언어는 아님
+  - Monad, 대수 구조 타입이 잘 묻어나지 않는 경향 존재
+  - 자바스크립트에서는 Monad 를 직접적으로 활용하거나 이용하는 객체를 만들어서 코딩하지는 않음
+- 하지만 Monad 의 개념을 알고 있으면 안전한 함수 합성에 더 좋은 사고를 가질 수 있음
+  - Array 나 Promise 등을 통해 Monad 를 알 수 있고 안전하게 함수 합성을 할 수 있도록 도와줄 수 있음
+```typescript
+// Box 안에 값이 존재하고 이 값으로 함수 합성을 안전하게 해나가는 것이라고 생각하면 됨
+const g = a => a + 1
+const f = a => a * a
+
+console.log(f(g(1))) // 4
+console.log(f(g())) // NaN
+
+// 만약 빈 값을 전달하거나 이상한 값을 넣으면 잘못된 값으로 평가하며
+// 심지어 그 무의미하고 이상한 값을 console.log 함수에 활용하게 됨 
+// 즉, 안전한 함수 합성이 불가능하다는 것
+```
+
+어떤 값이 들어올지 모르는 상황에서 어떻게 함수 합성을 안전하게 할 수 있는가 생각하는 아이디어가 Monad
+- [1] 모나드는 박스를 가지고 있고 박스 안에 연산에 필요한 재료를 가지고 있음. 
+- 그리고 함수 합성을 박스가 가지고 있는 메소드(map 등)들을 활용해서 함수를 합성
+- g와 f 함수를 합성하고 싶다면 " [1].map(g).map(f) " 로 합성함
+```typescript
+console.log([1].map(g).map(f)) // [4]
+```
+
+하지만 Array 가 꼭 필요한 값은 아니다
+- Array 는 개발자가 어떤 효과를 만들거나 값을 다룰 때 사용하는 도구
+- 사용자 화면에 노출되는 실제 결론이 아니라는 것
+- Array 인 채로 활용하는 것이 아니라 div 태그로 변환하는 등 화면에 실제로 보여줄 수 있도록 하는 것이 효율적인 코드 작성에 도움되는 것
+  
+```typescript
+[1]
+  .map(g)
+  .map(f)
+  .forEach(r => console.log(`가격: ${r}`)) // 가격 : 4 
+
+```
+
+이렇게 함수를 합성했을 때의 장점은?
+
+```typescript
+[]
+  .map(g)
+  .map(f)
+  .forEach(r => console.log(`가격: ${r}`)) 
+```
+- 위와 같이 console 에 아무것도 찍히지 않는다 => 무의미한 값을 처리하지 않는다
+- 함수 자체가 실행되지 않는 것
+- 박스 안에 효과가 있는지 없는지에 따라서 합성을 효과적으로 하거나 안 하고 있다는 것
+- 모나드 형태의 Array map 을 활용해 안전하게 효과를 일으키지 않는 방식으로 일어난다는 것
+  - 순수 함수를 통한 합성까지는 사용자에게 필요한 효과는 없는 것
+  - 그 후에 실제 사용자에게 필요한 효과를 출력하거나 HTML 을 만들기까지 안전하게 함수를 합성하는 기법
+- Array 는 값이 하나든지 없든지 여러개이든지 안전하게 함수를 합성해서 결과를 만들기 위한 성질을 가지고 있음
+```typescript
+[1, 2, 3]
+  .map(g)
+  .map(f)
+  .forEach(r => console.log(`가격: ${r}`)) // 가격 : 4 \n 가격 : 9 \n 가격 : 16
+``` 
+
+### Promise
+- 그렇다면 Promise 는 어떤 함수 합성을 하는 값인가?
+- Promise 도 Array method 와 비슷한 형태를 띈다.
+  - Array 가 map 으로 합성을 한다면
+  - Promise 는 then 으로 합성한다
+```typescript
+Array.of(1)
+  .map(g)
+  .map(f)
+  .forEach(r => console.log(r)) // 4
+
+Promise.resolve(1)
+  .then(g)
+  .then(f)
+  .then(r => console.log(r)) // 4
+```
+
+Promise 는 비동기적인 상황을 안전하게 합성하기 위한 도구
+- 단, 주의할 점은 인자로 전달되는 것이 무엇이든 안전하게 합성하기 위한 도구는 아니라는 것
+- 비동기 상황에서만 국한됨
+```typescript
+// 인자에 이상한 것이 들어갈 경우
+Promise.resolve()
+  .then(g)
+  .then(f)
+  .then(r => console.log(r)) // NaN
+
+// 비동기 상황일 경우
+new Promise(resolve => setTimeout(() => resolve(2), 1000))
+  .then(g)
+  .then(f)
+  .then(r => console.log(r)) // 9
+```

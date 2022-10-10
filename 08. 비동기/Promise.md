@@ -36,4 +36,39 @@ console.log(asyncPromise) // Promise { <pending> }
 - 비동기로 일어난 상황에 대해서 값으로 다룰 수 있고 그게 일급이라는 것을 의미
 - 어떤 변수에 할당할 수 있고 전달될 수 있고 일들을 진행할 수 있다는 것
 
-## 1-2) 
+## 1-2) 값으로서의 Promise
+```typescript
+// go1 함수가 잘 동작하기 위해서는 f 라는 함수가 동기적으로 작동해야 하고, a 값도 동기적으로 확인할 수 있는 값이어야 한다는 것
+const go1 = (a, f) => f(a);
+const add5 = (a) => a + 5;
+
+const delay100 = (a) =>
+	new Promise((resolve) => setTimeout(() => resolve(a), 100));
+
+
+console.log(go1(10, add5)); // 15
+console.log(go1(delay100(10), add5)); //[object Promise]5 => 정상 동작이 되지 않음
+
+// 그렇다면 비동기 처리를 할 수 있도록 하는 go1 을 만들면
+const goP = (a, f) => (a instanceof Promise ? a.then(f) : f(a));
+
+console.log(goP(delay100(10), add5)); // Promise { <pending> }
+
+// 이렇게 되면 아래의 코드는 동일한 모습을 취하게 된다
+const r = goP(10, add5) 
+const rPromsie = goP(delay100(10), add5)
+
+console.log(r) // 15
+console.log(rPromise.then(console.log)) // 15
+
+// 위의 r 과 rPromise 를 동일하게 적용할 수 있는 방법이 있다
+const n1 = 10;
+const n2 = delay100(10)
+goP(goP(n1, add5), console.log) // 15
+goP(goP(n2, add5), console.log) // 15 
+
+// 하지만 위의 코드를 console.log 찍으면 
+console.log('out_console', goP(goP(n1, add5), console.log)) // 15 \n out_console undefined
+console.log('out_console', goP(goP(n2, add5), console.log)) // out_console Promise { <pending> } \n 15
+```
+- 어떤 일을 한 결과의 상황을 일급 값으로 만들어서 지속적으로 이어나갈 수 있게 하는 것이 Promise 의 중요한 특징

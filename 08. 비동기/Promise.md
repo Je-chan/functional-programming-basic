@@ -176,3 +176,76 @@ new Promise(resolve => setTimeout(() => resolve(2), 1000))
   .then(f)
   .then(r => console.log(r)) // 9
 ```
+
+## 1-3) Kleisli Composition 관점에서의 Promise
+- 오류가 있을 수 있는 상황에서 안전하게 함수를 합성할 수 있는 규칙
+  - 수학적인 Programming 에서는 정확한 상수와 변수를 통해 합성을 해 평가를 냄
+  - 현대 프로그래밍에서는 State, Side Effect 등 외부 세상에 의존할 수밖에 없다
+  - 이런 상황일 때 에러가 발생한다
+- 수학적 프로그래밍에서 함수 합성은 항상 같아야 한다
+  - f(g(x)) = f(g(x))
+- 하지만, g(x) 의 값이 언제 실행되느냐에 따라 값이 달라진다면 오류가 발생할 수 있다 => 즉, 순수한 함수형 프로그래밍이 안 되는 것
+  - 그런 상황에서도 특정 규칙을 만들어 합성을 안전하게 하고 좀 더 수학적으로 바라보도록 만드는 것이 Kleisli 합성
+  - 만약 g(x) 에 에러가 났다고 하면 
+  - f(g(x)) = g(x)
+  - 로 만드는 것
+
+```typescript
+// user 라는 State
+const users = [
+	{id: 1, name: 'aa'},
+	{id: 2, name: 'bb'},
+	{id: 3, name: 'cc'},
+]
+
+const find = curry((f, iter) => go (
+	iter,
+	L.filter(f),
+	take(1),
+	([a]) => a
+))
+
+const getUserById = id => find(u => u.id === id, users);
+
+const f = ({name}) => name;
+const g = getUserById
+const fg = (id) => f(g(id));
+
+console.log(fg(2)); // bb
+console.log(fg(2) === fg(2)) // true
+```
+
+하지만 실세계에서는 users 라는 state 가 항상 동일하다고 볼 수 없다
+```typescript
+const r = fg(2)
+console.log(r) 
+
+users.pop()
+users.pop()
+
+// 에러 발생해서 코드를 볼 수 없음
+const r2 = fg(2);
+console.log(r2)
+```
+- f 라는 함수는 객체에 항상 name 이 있어야만 정상적으로 동작하는 코드
+- g 라는 함수는 find 의 결과가 있을 때 정상적으로 동작하는 코드
+- 이런 상황에서 에러가 나지 않도록 하는 것이 Kleisli Composition
+
+```typescript
+// g 함수가 에러 나지 않도록 만들기 위해 reject 를 사용
+const getUserById = id =>
+  find(user => user.id === id, users) || Promise.reject('No one')
+
+const f = ({name}) => name
+const g = getUserById
+const fg = id => Promise.resolve(id).then(g).then(f).catch(a => a)
+
+fg(2).then(console.log) // bb
+g(2) // {id: 2, name: 'bb'}
+users.pop()
+g(2) // Promise {<rejected>: "No one"}
+
+fg(2).then(console.log) // "No one" 
+f(g(2)) // undefined => 이렇게 엉뚱하고 의미없는 결과를 사용하지 않는다
+
+```

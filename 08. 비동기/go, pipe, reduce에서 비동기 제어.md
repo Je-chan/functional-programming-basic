@@ -140,5 +140,17 @@ go(
   (a) => a + 10000,
   console.log
 ).catch(error => console.log(error));
-
 ```
+
+# 2. Promise.then 의 중요한 규칙
+- then 을 통해서 꺼낸 값은 반드시 Promise 가 아니라는 것
+```typescript
+Promise.resolve(Promise.resolve(Promise.resolve(1))).then(console.log) // 1
+```
+- Promise Chain 이 연속적으로 대기가 걸려 있어도 원하는 곳에서 한 번의 then 으로 해당하는 결과를 받을 수 있다
+- then 메소드를 실행한 Promise.resolve() 안에는 두 개의 Promise 가 존재하지만
+- then 의 결과 값은 그 Promise 값이 아니라 Promise 가 끝난 결과 값이라는 것
+```typescript
+new Promise(resolve => resolve(new Promise(resolve => resolve(1)))).then(console.log)
+```
+- 아무리 Promise 가 중첩되더라도 내가 원하는 곳에서 한 번의 then 으로 꺼내서 값을 사용할 수 있다는 점

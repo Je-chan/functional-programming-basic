@@ -85,3 +85,54 @@ go(
 	console.log
 )
 ```
+
+# 2. Kleisli Composition 활용
+- filter 에서 지연 평가와 비동기 동시성(Promise)을 함께 지원하려면 Kleisli Composition 을 활용해야 한다
+
+```typescript
+go(
+	[1, 2, 3, 4, 5, 6],
+  L.map(a => Promise.resolve(a * a)),
+  L.filter(a => a % 2),
+  take(2),
+  console.log // [] => 정상적으로 동작하지 않는 상황
+)
+```
+
+- filter 로 넘어오는 값이 Promise 기 때문에 [] 을 반환하는 것
+- filter 메소드가 Promise 를 다룰 수 있도록 수정해야 함
+
+```typescript
+const noP = Symbol("noP");
+
+L.filter = curry(function* (f, iter) {
+	for (const a of iter) {
+		const b = goP(a, f);
+		// filter 를 통해서 yield 를 전달할 때, 다음 함수에 인자가 전달되서는 안 됨.
+		// > 이를 하기 위해서 Kleisli Composition 을 활용.
+		//> noP 이라는 구분자를 활용해서 아무 일도 하지 않도록 설정 (take 함수에서) => 즉, then 체이닝에서 catch 로 넘어감
+		if (b instanceof Promise)
+			yield b.then((b) => (b ? a : Promise.reject(noP)));
+		else if (b) yield a;
+	}
+});
+
+go(
+	[1, 2, 3, 4, 5, 6],
+	L.map((a) => Promise.resolve(a * a)),
+	L.filter((a) => {
+		console.log(a); // 1 \n 4 \n 9
+		return a % 2;
+	}),
+	// 4는 filter 에서 reject 되고 다음 함수 인자로 넘어가지 않음
+	L.map((a) => {
+		console.log(a) // 1 \n 9
+		1
+		return a * a;
+	}),
+	take(2),
+	console.log // [1, 81]
+);
+```
+- noP 이라는 구분자를 사용
+

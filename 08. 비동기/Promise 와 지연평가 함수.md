@@ -136,3 +136,54 @@ go(
 ```
 - noP 이라는 구분자를 사용
 
+# 3. reduce 와 noP
+```typescript
+go(
+  [1, 2, 3, 4, 5, 6],
+  L.map((a) => Promise.resolve(a * a)),
+  L.filter((a) => Promise.resolve(a % 2)),
+  reduce(add),
+  console.log // 1[object Promise][object Promise][object Promise][object Promise][object Promise]
+);
+```
+- 방금 전에 만든 noP 은 Reduce 에서 제대로 값을 활용할 수 없는 상태
+
+```typescript
+// 함수로 추상화해서 선언적인 코드 작성
+const reduceP = (acc, a, f) =>
+  a instanceof Promise
+    ? a.then(
+        (a) => f(acc, a),
+        (e) => (e === noP ? acc : Promise.reject(e))
+      )
+    : f(acc, a);
+
+// 함수로 빼내는 과정이 다형성을 지향하고 선언적으로 코드를 작성하는데 도움을 줌
+const head = (iter) => goP(take(1, iter), ([h]) => h);
+
+const reduce = curry((f, acc, iter) => {
+	
+	if (!iter) return reduce(f, head(iter = acc[Symbol.iterator]()), iter)
+
+	iter = iter[Symbol.iterator]();
+	return goP(acc, function recur(acc) {
+		let cur;
+
+		while (!(cur = iter.next()).done) {
+			acc = reduceP(acc, cur.value, f);
+			if (acc instanceof Promise) return acc.then(recur);
+		}
+
+		return acc;
+	});
+});
+
+
+go(
+	[1, 2, 3, 4, 5, 6],
+	L.map((a) => Promise.resolve(a * a)),
+	L.filter((a) => Promise.resolve(a % 2)),
+	reduce(add),
+	console.log // 35
+);
+```

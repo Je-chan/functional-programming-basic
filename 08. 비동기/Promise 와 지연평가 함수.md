@@ -30,21 +30,22 @@ go(
 
 ```typescript
 const take = curry((l, iter) => {
-  let res = [];
-  iter = iter[Symbol.iterator]();
-
-  return (function recur() {
-    let cur;
-    while (!(cur = iter.next()).done) {
-      const a = cur.value;
-      if (a instanceof Promise) {
-        return a.then((a) => ((res.push(a), res).length === l ? res : recur()));
-      }
-      res.push(a);
-      if (res.length === l) return res;
-    }
-    return res;
-  })();
+	let res = [];
+	iter = iter[Symbol.iterator]();
+	return (function recur() {
+		let cur;
+		while (!(cur = iter.next()).done) {
+			const a = cur.value;
+			if (a instanceof Promise) {
+				return a
+					.then((a) => ((res.push(a), res).length == l ? res : recur()))
+					.catch((e) => (e == noP ? recur() : Promise.reject(e)));
+			}
+			res.push(a);
+			if (res.length == l) return res;
+		}
+		return res;
+	})();
 });
 
 go(
@@ -151,33 +152,28 @@ go(
 ```typescript
 // 함수로 추상화해서 선언적인 코드 작성
 const reduceP = (acc, a, f) =>
-  a instanceof Promise
-    ? a.then(
-        (a) => f(acc, a),
-        (e) => (e === noP ? acc : Promise.reject(e))
-      )
-    : f(acc, a);
+	a instanceof Promise
+		? a.then(
+			(a) => f(acc, a),
+			(e) => (e === noP ? acc : Promise.reject(e))
+		)
+		: f(acc, a);
 
-// 함수로 빼내는 과정이 다형성을 지향하고 선언적으로 코드를 작성하는데 도움을 줌
 const head = (iter) => goP(take(1, iter), ([h]) => h);
 
 const reduce = curry((f, acc, iter) => {
-	
-	if (!iter) return reduce(f, head(iter = acc[Symbol.iterator]()), iter)
+	if (!iter) return reduce(f, head((iter = acc[Symbol.iterator]())), iter);
 
 	iter = iter[Symbol.iterator]();
 	return goP(acc, function recur(acc) {
 		let cur;
-
 		while (!(cur = iter.next()).done) {
 			acc = reduceP(acc, cur.value, f);
 			if (acc instanceof Promise) return acc.then(recur);
 		}
-
 		return acc;
 	});
 });
-
 
 go(
 	[1, 2, 3, 4, 5, 6],
